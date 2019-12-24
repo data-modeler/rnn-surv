@@ -33,7 +33,7 @@ def main(input_filepath, output_filepath):
     })
 
     # get feature names by type
-    categorical_feature_mask = X.dtypes==object
+    categorical_feature_mask = X.dtypes == object
     cat_names = X.columns[categorical_feature_mask].tolist()
     num_names = X.columns[~categorical_feature_mask].tolist()
 
@@ -45,19 +45,37 @@ def main(input_filepath, output_filepath):
     scaler = StandardScaler().fit(X_train[num_names])
 
     # transform train and test
-    X_train = np.concatenate(
-        (ohe.transform(X_train[cat_names]), scaler.transform(X_train[num_names])),
+    X_train = np.concatenate((
+        ohe.transform(X_train[cat_names]),
+        scaler.transform(X_train[num_names])),
         axis=1
     )
-    X_test = np.concatenate(
-        (ohe.transform(X_test[cat_names]), scaler.transform(X_test[num_names])),
+    X_test = np.concatenate((
+        ohe.transform(X_test[cat_names]),
+        scaler.transform(X_test[num_names])),
         axis=1
     )
     # save out
-    np.savetxt(os.path.join(output_filepath, 'aids_X_train.csv'), X_train, delimiter=',')
-    np.savetxt(os.path.join(output_filepath, 'aids_X_test.csv'), X_test, delimiter=',')
-    y_train.to_csv(os.path.join(output_filepath, 'aids_y_train.csv'), header=False, index=False)
-    y_test.to_csv(os.path.join(output_filepath, 'aids_y_test.csv'), header=False, index=False)
+    np.savetxt(
+        os.path.join(output_filepath, 'aids_X_train.csv'),
+        X_train,
+        delimiter=','
+    )
+    np.savetxt(
+        os.path.join(output_filepath, 'aids_X_test.csv'),
+        X_test,
+        delimiter=','
+    )
+    y_train.to_csv(
+        os.path.join(output_filepath, 'aids_y_train.csv'),
+        header=False,
+        index=False
+    )
+    y_test.to_csv(
+        os.path.join(output_filepath, 'aids_y_test.csv'),
+        header=False,
+        index=False
+    )
 
 
 if __name__ == '__main__':
