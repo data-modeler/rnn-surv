@@ -40,6 +40,12 @@ def main(input_filepath, output_filepath):
     # split train, test
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
 
+    # save interim
+    X_train.to_csv('data/interim/aids_x_train.csv', index=False)
+    X_test.to_csv('data/interim/aids_x_test.csv', index=False)
+    y_train.to_csv('data/interim/aids_y_train.csv', index=False)
+    y_test.to_csv('data/interim/aids_y_test.csv', index=False)
+
     # get preprocessors
     ohe = OneHotEncoder(sparse=False).fit(X_train[cat_names])
     scaler = StandardScaler().fit(X_train[num_names])
