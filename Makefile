@@ -42,16 +42,20 @@ lint:
 sync_data_to_s3:
 ifeq (default,$(PROFILE))
 	aws s3 sync data/ s3://$(BUCKET)/data/
+	aws s3 sync models/ s3://$(BUCKET)/models/
 else
 	aws s3 sync data/ s3://$(BUCKET)/data/ --profile $(PROFILE)
+	aws s3 sync models/ s3://$(BUCKET)/models/ --profile $(PROFILE)
 endif
 
 ## Download Data from S3
 sync_data_from_s3:
 ifeq (default,$(PROFILE))
 	aws s3 sync s3://$(BUCKET)/data/ data/
+	aws s3 sync s3://$(BUCKET)/models/ models/
 else
 	aws s3 sync s3://$(BUCKET)/data/ data/ --profile $(PROFILE)
+	aws s3 sync s3://$(BUCKET)/models/ models/ --profile $(PROFILE)
 endif
 
 ## Set up python interpreter environment
