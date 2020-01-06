@@ -11,18 +11,43 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
 
 
-@click.command()
-@click.argument('input_filepath', type=click.Path(exists=True))
-@click.argument('output_filepath', type=click.Path())
-def main(input_filepath, output_filepath):
-    """ Runs data processing scripts to turn raw data from (../raw) into
-        cleaned data ready to be analyzed (saved in ../processed).
+def save_files(path:str, filename:str, dat, **kwargs):
+    """ Saves file based on criteria.
+
+    :param path: The location in which to save the file.
+    :param filename: The name of the file to save.
+    :param dat: The data to be saved, either a pandas DataFrame or numpy array.
+    :param dattype: The type of the data, either 'np' or 'df'. Defaults to 'np'.
     """
-    logger = logging.getLogger(__name__)
-    logger.info('making final data set from raw data')
+    if isinstance(dat, pd.core.frame.DataFrame):
+        dat.to_csv(os.path.join(path, filename), index=False, **kwargs)
+    else:
+        np.savetxt(os.path.join(path, filename), dat, delimiter=',')
+
+
+def process_weather_data(input_path, output_path):
+    """ Processes the Irish weather data to make a censored time-to-event 
+        prediction model.
+    """
+    dat = pd.read_csv(os.path.join(input_path, 'hourly_irish_weather.csv'), nrows=200)
+    dat.drop('Unnamed: 0', axis=1, inplace=True)
+
+    # create event flag
+    dat['rain_flag'] = 0
+    dat.loc[dat.rain != 0, 'rain_flag'] = 1
+
+    prev_rain_flag = np.array([np.nan, 0]) 
+    prev_rain_flag = np.append(np.nan, prev_rain_flag)
+
+    print(prev_rain_flag) 
+    # print(dat.loc[dat.rain != 0, ['date', 'rain', 'rain_flag']].head())
+
+
+def process_aids_data(input_path, output_path):
+    """ Processes the Aids2 data for analysis in R and Python. """
 
     # read data
-    dat = pd.read_csv(os.path.join(input_filepath, 'Aids2.csv'))
+    dat = pd.read_csv(os.path.join(input_path, 'Aids2.csv'))
     dat.drop('Unnamed: 0', axis=1, inplace=True)
 
     # split X, y
@@ -39,12 +64,13 @@ def main(input_filepath, output_filepath):
 
     # split train, test
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
+    prev_rain_flag = np.append(prev_rain_flag)
 
     # save interim
-    X_train.to_csv('data/interim/aids_x_train.csv', index=False)
-    X_test.to_csv('data/interim/aids_x_test.csv', index=False)
-    y_train.to_csv('data/interim/aids_y_train.csv', index=False)
-    y_test.to_csv('data/interim/aids_y_test.csv', index=False)
+    save_files(os.path.join('data', 'interim'), 'aids_x_train.csv', X_train)
+    save_files(os.path.join('data', 'interim'), 'aids_x_test.csv', X_test)
+    save_files(os.path.join('data', 'interim'), 'aids_y_train.csv', y_train)
+    save_files(os.path.join('data', 'interim'), 'aids_y_test.csv', y_test)
 
     # get preprocessors
     ohe = OneHotEncoder(sparse=False).fit(X_train[cat_names])
@@ -62,26 +88,24 @@ def main(input_filepath, output_filepath):
         axis=1
     )
     # save out
-    np.savetxt(
-        os.path.join(output_filepath, 'aids_X_train.csv'),
-        X_train,
-        delimiter=','
-    )
-    np.savetxt(
-        os.path.join(output_filepath, 'aids_X_test.csv'),
-        X_test,
-        delimiter=','
-    )
-    y_train.to_csv(
-        os.path.join(output_filepath, 'aids_y_train.csv'),
-        header=False,
-        index=False
-    )
-    y_test.to_csv(
-        os.path.join(output_filepath, 'aids_y_test.csv'),
-        header=False,
-        index=False
-    )
+    save_files(output_path, 'aids_X_train.csv', X_train)
+    save_files(output_path, 'aids_X_test.csv', X_test)
+    save_files(output_path, 'aids_y_train.csv', y_train, header=False)
+    save_files(output_path, 'aids_y_test.csv', y_test, header=False)
+
+
+@click.command()
+@click.argument('input_filepath', type=click.Path(exists=True))
+@click.argument('output_filepath', type=click.Path())
+def main(input_filepath, output_filepath):
+    """ Runs data processing scripts to turn raw data from (../raw) into
+        cleaned data ready to be analyzed (saved in ../processed).
+    """
+    # logger = logging.getLogger(__name__)
+    # logger.info('making final data set from raw data')
+
+    # process_aids_data(input_filepath, output_filepath)
+    process_weather_data(input_filepath, output_filepath)
 
 
 if __name__ == '__main__':
