@@ -11,3 +11,4 @@ python-dotenv>=0.5.1
 sklearn==0.0
 jupyter==1.0.0
 pandas==0.25.3
+tqdm==4.41.1

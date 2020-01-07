@@ -6,10 +6,12 @@ from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
 import pandas as pd
 import numpy as np
+from tqdm import tqdm
 
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
 
+DataFrame = pd.core.frame.DataFrame
 
 def save_files(path:str, filename:str, dat, **kwargs):
     """ Saves file based on criteria.
@@ -19,28 +21,88 @@ def save_files(path:str, filename:str, dat, **kwargs):
     :param dat: The data to be saved, either a pandas DataFrame or numpy array.
     :param dattype: The type of the data, either 'np' or 'df'. Defaults to 'np'.
     """
-    if isinstance(dat, pd.core.frame.DataFrame):
+        
+    try:
+        os.makedirs(path)
+    except FileExistsError:
+        pass
+
+    if isinstance(dat, DataFrame):
         dat.to_csv(os.path.join(path, filename), index=False, **kwargs)
     else:
         np.savetxt(os.path.join(path, filename), dat, delimiter=',')
+
+
+def process_weather_station(stat:DataFrame) -> DataFrame:
+    """ Processes the Irish weather data to make a censored time-to-event 
+        prediction model.
+
+    :param stat: Weather data for only one station
+
+    :returns: Processed data for the station, ready to be appended.
+    :rtype: pandas DataFrame
+    """
+    stat['prev_rain_flag'] = np.append(np.nan, stat.rain_flag)[0:-1]
+
+    # remove consecutive rains
+    stat['rem'] = 0
+    stat.loc[(stat.rain_flag == 1) & (stat.prev_rain_flag == 1), 'rem'] = 1
+    stat = stat\
+        .query('rem == 0')\
+        .drop('rem', axis=1)\
+        .reset_index()
+
+    # remove observations before first start
+    stat['start'] = 0
+    stat.loc[(stat.rain_flag == 0) & (stat.prev_rain_flag == 1), 'start'] = 1
+    first_start = stat.query('start == 1').index.tolist()[0]
+    stat = stat.loc[first_start:, ].reset_index()
+
+    # create sequence variable and observation id
+    sequence = []
+    obs_id = []
+    prev_oid = 0
+    for i in tqdm(stat.index, desc="Sequencing: "):
+        if stat.loc[i, 'start'] == 1:
+            val = 1
+            prev = 1
+            oid = prev_oid + 1
+            prev_oid = oid 
+        else:
+            val = 1 + val
+            prev = val
+            oid = prev_oid
+
+        sequence.append(val)
+        obs_id.append(oid)
+
+    stat['seq'] = sequence
+    stat['oid'] = obs_id
+
+    return stat.drop(['prev_rain_flag', 'start'], axis=1)
 
 
 def process_weather_data(input_path, output_path):
     """ Processes the Irish weather data to make a censored time-to-event 
         prediction model.
     """
-    dat = pd.read_csv(os.path.join(input_path, 'hourly_irish_weather.csv'), nrows=200)
+    dat = pd.read_csv(os.path.join(input_path, 'hourly_irish_weather.csv'))
+
     dat.drop('Unnamed: 0', axis=1, inplace=True)
 
     # create event flag
     dat['rain_flag'] = 0
     dat.loc[dat.rain != 0, 'rain_flag'] = 1
 
-    prev_rain_flag = np.array([np.nan, 0]) 
-    prev_rain_flag = np.append(np.nan, prev_rain_flag)
+    # it's easier to process separately for each station
+    stations = dat.station.unique().tolist()
+    list_of_df = [
+        process_weather_station(dat.copy().query('station == @station'))
+        for station in tqdm(stations, desc="Processing Stations: ")
+    ]
+    out = pd.concat(list_of_df, ignore_index=True)
 
-    print(prev_rain_flag) 
-    # print(dat.loc[dat.rain != 0, ['date', 'rain', 'rain_flag']].head())
+    save_files(os.path.join('data', 'interim'), 'rain_interim.csv', out)
 
 
 def process_aids_data(input_path, output_path):
