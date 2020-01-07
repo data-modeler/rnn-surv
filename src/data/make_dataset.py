@@ -62,7 +62,7 @@ def process_weather_station(stat:DataFrame) -> DataFrame:
     sequence = []
     obs_id = []
     prev_oid = 0
-    for i in tqdm(stat.index, desc="Sequencing: "):
+    for i in stat.index:
         if stat.loc[i, 'start'] == 1:
             val = 1
             prev = 1
