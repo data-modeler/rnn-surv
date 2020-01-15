@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
+from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
 
@@ -23,14 +24,14 @@ def save_files(path:str, filename:str, dat, **kwargs):
     """
         
     try:
-        os.makedirs(path)
+        os.makedirs(os.path.join('data', path))
     except FileExistsError:
         pass
 
     if isinstance(dat, DataFrame):
-        dat.to_csv(os.path.join(path, filename), index=False, **kwargs)
+        dat.to_csv(os.path.join('data', path, filename), index=False, **kwargs)
     else:
-        np.savetxt(os.path.join(path, filename), dat, delimiter=',')
+        np.savetxt(os.path.join('data', path, filename), dat, delimiter=',')
 
 
 def process_weather_station(stat:DataFrame) -> DataFrame:
@@ -50,13 +51,13 @@ def process_weather_station(stat:DataFrame) -> DataFrame:
     stat = stat\
         .query('rem == 0')\
         .drop('rem', axis=1)\
-        .reset_index()
+        .reset_index(drop=True)
 
     # remove observations before first start
     stat['start'] = 0
     stat.loc[(stat.rain_flag == 0) & (stat.prev_rain_flag == 1), 'start'] = 1
     first_start = stat.query('start == 1').index.tolist()[0]
-    stat = stat.loc[first_start:, ].reset_index()
+    stat = stat.loc[first_start:, ].reset_index(drop=True)
 
     # create sequence variable and observation id
     sequence = []
@@ -82,10 +83,11 @@ def process_weather_station(stat:DataFrame) -> DataFrame:
     return stat.drop(['prev_rain_flag', 'start'], axis=1)
 
 
-def process_weather_data(input_path, output_path):
+def process_interim_weather_data(input_path, output_path):
     """ Processes the Irish weather data to make a censored time-to-event 
         prediction model.
     """
+    print('Reading raw data...')
     dat = pd.read_csv(os.path.join(input_path, 'hourly_irish_weather.csv'))
 
     dat.drop('Unnamed: 0', axis=1, inplace=True)
@@ -98,12 +100,102 @@ def process_weather_data(input_path, output_path):
     stations = dat.station.unique().tolist()
     list_of_df = [
         process_weather_station(dat.copy().query('station == @station'))
-        for station in tqdm(stations, desc="Processing Stations: ")
+        for station in tqdm(stations, desc="Processing stations: ")
     ]
     out = pd.concat(list_of_df, ignore_index=True)
 
-    save_files(os.path.join('data', 'interim'), 'rain_interim.csv', out)
+    stations_dict = {station: i*100000 for i, station in enumerate(stations)}
+    dat.oid = dat.station.map(stations_dict) + dat.oid
 
+    print('Saving interim File...')
+    save_files('interim', 'rain_interim.csv', out)
+
+
+def make_survival_data(data):
+    # delete some data to make it a survival analysis problem
+    rules = data\
+        .loc[:, ['station', 'oid', 'seq']]\
+        .groupby(['station', 'oid'])\
+        .max()\
+        .sample(frac=0.5)\
+        .reset_index()\
+        .copy()
+
+    rules['keep'] = (np.random.random(rules.shape[0]) * rules.seq).round(0)
+    # because 0 would effectively delete the observation
+    rules.loc[rules.keep == 0.0, 'keep'] = 1.0
+
+    out = pd.merge(
+        data, rules, how='left', on=['station', 'oid'], suffixes=('', '_y')
+    )\
+        .fillna(value={'keep': 10000000})\
+        .query('seq <= keep')\
+        .drop(['seq_y', 'keep', 'county', 'longitude', 'latitude', 'index',
+               'rain'], axis=1)
+    return out
+
+
+def split_survival_data(data, frac=0.7):
+    train_ids = data.query("seq == 1").sample(frac=frac).oid.tolist()
+    
+    train_dat = data.query("oid in @train_ids")
+    test_dat = data.query("oid not in @train_ids")
+              
+    x_cols = ['station', 'temp', 'wetb', 'dewpt', 'vappr', 'rhum', 'msl',
+              'wdsp', 'wddir', 'month', 'oid']
+    y_cols = ['oid', 'rain_flag', 'seq']
+
+    return train_dat[x_cols], test_dat[x_cols], train_dat[y_cols], test_dat[y_cols]
+
+
+def process_final_weather_data():
+    """ Reads the interim data after exploring in Jupyter notebook and
+        implements the final processing steps
+    """
+    print('Reading interim data...')
+    out = pd.read_csv(os.path.join('data', 'interim', 'rain_interim.csv'))
+    stations = out.station.unique().tolist()
+
+    print('Processing final data...')
+    # remove the outlier
+    out = out\
+        .query("(station != 'Roches_Point') & (oid != 4277)")\
+        .reset_index(drop=True)
+
+    out = make_survival_data(out)
+
+    # use month of the year as a predictor
+    out['month'] = pd.DatetimeIndex(out.date.to_numpy(np.datetime64)).month
+
+    X_train, X_test, y_train, y_test = split_survival_data(out)
+    
+    # get preprocessors
+    cats = ['station', 'month']
+    nums = [col for col in X_train.columns if col not in cats + ['oid']]
+    imputer = SimpleImputer().fit(X_train[nums])
+    scaler = StandardScaler().fit(X_train[nums])
+    ohe = OneHotEncoder(sparse=False).fit(X_train[cats])
+
+    # transform train and test
+    X_train = np.concatenate((
+        X_train[['oid']],
+        ohe.transform(X_train[cats]),
+        scaler.transform(imputer.transform(X_train[nums]))),
+        axis=1
+    )
+    X_test = np.concatenate((
+        X_test[['oid']],
+        ohe.transform(X_test[cats]),
+        scaler.transform(imputer.transform(X_test[nums]))),
+        axis=1
+    )
+
+    print('Saving final data files...')
+    save_files('processed', 'rain_X_train.csv', X_train)
+    save_files('processed', 'rain_X_test.csv', X_test)
+    save_files('processed', 'rain_y_train.csv', y_train, header=False)
+    save_files('processed', 'rain_y_test.csv', y_test, header=False)
+    
 
 def process_aids_data(input_path, output_path):
     """ Processes the Aids2 data for analysis in R and Python. """
@@ -126,13 +218,12 @@ def process_aids_data(input_path, output_path):
 
     # split train, test
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
-    prev_rain_flag = np.append(prev_rain_flag)
 
     # save interim
-    save_files(os.path.join('data', 'interim'), 'aids_x_train.csv', X_train)
-    save_files(os.path.join('data', 'interim'), 'aids_x_test.csv', X_test)
-    save_files(os.path.join('data', 'interim'), 'aids_y_train.csv', y_train)
-    save_files(os.path.join('data', 'interim'), 'aids_y_test.csv', y_test)
+    save_files('interim', 'aids_x_train.csv', X_train)
+    save_files('interim', 'aids_x_test.csv', X_test)
+    save_files('interim', 'aids_y_train.csv', y_train)
+    save_files('interim', 'aids_y_test.csv', y_test)
 
     # get preprocessors
     ohe = OneHotEncoder(sparse=False).fit(X_train[cat_names])
@@ -150,10 +241,10 @@ def process_aids_data(input_path, output_path):
         axis=1
     )
     # save out
-    save_files(output_path, 'aids_X_train.csv', X_train)
-    save_files(output_path, 'aids_X_test.csv', X_test)
-    save_files(output_path, 'aids_y_train.csv', y_train, header=False)
-    save_files(output_path, 'aids_y_test.csv', y_test, header=False)
+    save_files('processed', 'aids_X_train.csv', X_train)
+    save_files('processed', 'aids_X_test.csv', X_test)
+    save_files('processed', 'aids_y_train.csv', y_train, header=False)
+    save_files('processed', 'aids_y_test.csv', y_test, header=False)
 
 
 @click.command()
@@ -163,11 +254,12 @@ def main(input_filepath, output_filepath):
     """ Runs data processing scripts to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
     """
-    # logger = logging.getLogger(__name__)
-    # logger.info('making final data set from raw data')
+    logger = logging.getLogger(__name__)
+    logger.info('making final data set from raw data')
 
     # process_aids_data(input_filepath, output_filepath)
-    process_weather_data(input_filepath, output_filepath)
+    # process_interim_weather_data(input_filepath, output_filepath)
+    process_final_weather_data()
 
 
 if __name__ == '__main__':
