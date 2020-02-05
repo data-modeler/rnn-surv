@@ -23,7 +23,19 @@ Then edit the `Makefile` sections related to the `BUCKET` and `PROFILE` in order
 ### Environment Setup
 Simply run
 ```bash
-make 
+make create_environment
+make requirements
+```
+
+### Data Sources
+See the `References` directory for sources of raw data.  Once downloaded and placed into `/data/raw` run 
+```bash
+make data
+```
+
+### More Commands
+```bash
+make help
 ```
 
 ------------
