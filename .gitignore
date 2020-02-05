@@ -77,6 +77,7 @@ target/
 
 # exclude data from source control by default
 /data/
+*.csv
 
 # exclude models from source control by default
 /models/

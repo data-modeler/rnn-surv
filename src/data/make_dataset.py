@@ -164,6 +164,10 @@ def process_final_weather_data():
 
     out = make_survival_data(out)
 
+    # make oid unique
+    add_to_oid = {station: i * 100000 for i, station in enumerate(stations)}
+    out['oid'] = out.oid + out.station.map(add_to_oid)
+
     # use month of the year as a predictor
     out['month'] = pd.DatetimeIndex(out.date.to_numpy(np.datetime64)).month
 
