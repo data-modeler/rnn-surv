@@ -1,9 +1,33 @@
 rnn-surv
 ==============================
 
-A replication of the model RNN-SURV
+A replication of the model RNN-SURV. (see: http://medianetlab.ee.ucla.edu/papers/RNN_SURV.pdf)
 
-Project Organization
+------------
+## Setup
+------------
+### AWS
+If you haven't already, set up [AWS CLI credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) by editing the file ~/.aws/credentials (Linux & Mac) or %USERPROFILE%\.aws\credentials (Windows)
+
+```bash
+[default]
+aws_access_key_id=AKIAIOSFODNN7EXAMPLE
+aws_secret_access_key=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+
+[user1]
+aws_access_key_id=AKIAI44QH8DHBEXAMPLE
+aws_secret_access_key=je7MtGbClwBF/2Zp9Utk/h3yCo8nvbEXAMPLEKEY
+```
+Then edit the `Makefile` sections related to the `BUCKET` and `PROFILE` in order to enable sync to S3.
+
+### Environment Setup
+Simply run
+```bash
+make 
+```
+
+------------
+## Project Organization
 ------------
 
     ├── LICENSE
