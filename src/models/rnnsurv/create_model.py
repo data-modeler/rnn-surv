@@ -4,10 +4,10 @@
 
     Creates the RNN-SURV model based on hyperparameters.
 '''
-# import tensorflow as tf
-# from tensorflow import keras
-# from tensorflow.keras.models import Sequential, Model
-# from tensorflow.keras.layers import Dense, LSTM, Input, TimeDistributed, Dropout, Reshape, Flatten, Lambda
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.layers import Dense, LSTM, Input, TimeDistributed, Dropout, Reshape, Flatten, Lambda
 
 from . import loss1, loss2
 
@@ -60,7 +60,7 @@ def create_model(n_features,
     # r_out = calculate_r(y_hat)
 
     # losses = {
-    #         "y_hat": loss1(loss_mask, pad_token),
+    #         "y_hat": loss1(pad_token),
     #         "r_out": loss2(loss_mask, pad_token, flip_i),
     # }
 
