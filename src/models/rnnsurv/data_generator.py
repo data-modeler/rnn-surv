@@ -74,8 +74,8 @@ class DataGenerator(keras.utils.Sequence):
         flip_i = np.abs(np.eye(n) - 1)
 
         seq = np.array(batch_cts, dtype='float')        
-        X_out = [X_pad, flip_i]
-        y_out = [seq, masking, y_pad]
+        X_out = [X_pad, masking, flip_i]
+        y_out = [seq, y_pad]
 
         return X_out, y_out
 
@@ -104,5 +104,5 @@ if __name__ == '__main__':
     training_generator = DataGenerator(X_train, y_train, **test_params)
 
     for i in training_generator:
-        print(i[0][0].shape, i[0][1].shape,
-              i[1][0].shape, i[1][1].shape, i[1][2].shape)
+        print(i[0][0].shape, i[0][1].shape, i[0][2].shape
+              i[1][0].shape, i[1][1].shape)
