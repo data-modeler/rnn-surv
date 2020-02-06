@@ -1,4 +1,6 @@
-rnn-surv
+Note: this project is still under active development but the core functionality should be working or close to it.
+
+# rnn-surv
 ==============================
 
 A replication of the model RNN-SURV. (see: http://medianetlab.ee.ucla.edu/papers/RNN_SURV.pdf)
