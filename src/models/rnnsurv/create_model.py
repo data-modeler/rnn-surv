@@ -9,7 +9,7 @@ from tensorflow import keras
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import Dense, LSTM, Input, TimeDistributed, Dropout, Reshape, Flatten, Lambda
 
-from . import loss1, loss2
+from losses import loss1, loss2
 
 
 def create_model(n_features, 
@@ -74,8 +74,35 @@ def create_model(n_features,
     return model
 
 if __name__ == '__main__':
+
+    from data_generator import DataGenerator
     from utils import get_data
 
-    X_train, y_train = get_data(nrows=2000)
+    X_TRN, Y_TRN = get_data(nrows=2000)
+    N_FEATURES = X_TRN.shape[1] - 1 # all columns but `oid` are features
+
+    MODEL_PARAMS = {
+        'dense_sizes': (20, 10),
+        'lstm_sizes': (30, 30),
+        'dropout_prob': 0.5,
+        'max_length': 200,
+        'pad_token': -999,
+        'optimizer': 'adam',
+        'loss_weights': {"y_hat": 1.0, "r_out": 1.0}
+    }
+
+    MODEL = create_model(N_FEATURES, **MODEL_PARAMS)
+
+    PARAMS = {
+        'max_timesteps': MODEL_PARAMS['max_length'],
+        'padding_token': MODEL_PARAMS['pad_token'],
+        'max_batch_size': 64,
+        'min_batch_size': 32,
+        'shuffle': True,
+    }
+
+    TRAIN_GENERATOR = DataGenerator(X_TRN, Y_TRN, **PARAMS)
+
+    MODEL.fit(TRAIN_GENERATOR, epochs=5)
 
 
