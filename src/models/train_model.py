@@ -1,12 +1,4 @@
 '''
-# TODO:
-    1. create a generator to produce batches
-     - the batches will include observations with the same number of timesteps
-       up to a max batch size
-    2. assemble the sequential model with 
-     - TimeDistributed(Dense(n_hidden), input_size(None, n_dimensions) x 2
-     - LSTM x 2
-    3. calculate losses
     4. calculate C-Index from final predictions
     5. set up hyperparam tuning
 '''
@@ -14,7 +6,35 @@
 import numpy as np
 import pandas as pd
 
-dat = pd.read_csv('../../data/processed/rain_X_train.csv', nrows=20000)
+from rnnsurv import get_data, DataGenerator, create_model
 
-print(dat.columns)
+
+XT, YT = get_data()
+
+N_FEATURES = XT.shape[1] - 1 
+
+MODEL_PARAMS = {
+    'dense_sizes': (20, 10),
+    'lstm_sizes': (30, 30),
+    'dropout_prob': 0.5,
+    'max_length': 200,
+    'pad_token': -999,
+    'optimizer': 'adam',
+    'loss_weights': {"y_hat": 1.0, "r_out": 1.0}
+}
+
+MODEL = create_model(N_FEATURES, **MODEL_PARAMS)
+
+PARAMS = {
+    'max_timesteps': MODEL_PARAMS['max_length'],
+    'padding_token': MODEL_PARAMS['pad_token'],
+    'max_batch_size': 64,
+    'min_batch_size': 32,
+    'shuffle': True,
+}
+
+TRAIN_GENERATOR = DataGenerator(XT, YT, **PARAMS)
+
+MODEL.fit(TRAIN_GENERATOR, epochs=9)
+
 

@@ -4,6 +4,7 @@
 
     Utility functions to aid in data processing, training, etc.
 '''
+import os
 import numpy as np
 import pandas as pd
 
@@ -20,10 +21,10 @@ def split_at_idx(a: np.ndarray, idx: int):
     return a[:idx], a[idx:]
 
 
-def apply_padding(df, counts_df, time_width, padding_token=-999, n_features=None):
+def apply_padding(df, survstats, time_width, padding_token=-999, n_features=None):
     '''Gets batch matrix and applies padding.
     :param df: The full raw data file, either X or y, train or test
-    :param counts_df: The limited dataframe with oid as the index and `counts` 
+    :param survstats: The limited dataframe with oid as the index and `tte` 
         representing the sequence length
     :param time_width: (int) the max sequence length to truncate to or add padding
     :param padding_token: the value to use to represent padding
@@ -35,9 +36,10 @@ def apply_padding(df, counts_df, time_width, padding_token=-999, n_features=None
         n_features = 2   # the number of columns needed for y_batch
     
     batch = np.empty((0, time_width, n_features))
-    for s, val in counts_df.iterrows():
+    # process observations of the same length together
+    for s, val in survstats.iterrows():
         out = np.array(df.query('oid == @s').drop('oid', axis=1))
-        out = np.reshape(out, newshape=(1, val.counts, n_features))
+        out = np.reshape(out, newshape=(1, int(val.tte), n_features))
         out = out[:, :time_width, :]  # in case it's too long for padding
         out = np.pad(
             out, 
@@ -50,3 +52,21 @@ def apply_padding(df, counts_df, time_width, padding_token=-999, n_features=None
     return batch
 
 
+def get_data(path_to_file='data/processed/',
+             X_filename='rain_X_train.csv',
+             y_filename='rain_y_train.csv',
+             nrows=None):
+    '''Gets X and y data and makes it ready for use.'''
+    filepath = os.path.join(
+        os.path.dirname(__file__),
+        '../../..',
+        path_to_file
+    )
+    X_train = pd.read_csv(os.path.join(filepath, X_filename),
+                          nrows=nrows, header=None)
+    y_train = pd.read_csv(os.path.join(filepath, y_filename),
+                          nrows=nrows, header=None)
+    X_train.rename({0: 'oid'}, axis=1, inplace=True)
+    y_train.rename({0: 'oid'}, axis=1, inplace=True)
+
+    return X_train, y_train
