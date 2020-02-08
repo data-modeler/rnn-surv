@@ -20,15 +20,12 @@ def loss2(mask_layer, pad_token, flip_i):
 
     def loss(y_true, y_pred):
         ''' y_true are the sequence lengths, y_pred is the risk calculation'''
-        # create mask for only using observations where the event occurred
-        # to calculate the loss
-        m1 = K.cast(K.equal(mask_layer, 1.), K.floatx())
-        y_shape = K.shape(y_true) # (batch size, 1)
 
-        phi_mask = K.reshape(K.sum(m1, axis=1), y_shape) # masks out censored observations
+        phi_mask = y_true[:, 0] # 1=event occurred; masks out censored observations
+        seqs = y_true[:, 1]
 
         ### mask where Y_i >= Y_j
-        y_eye = K.flatten(y_true) * flip_i  # square matrix where values of y are in the columns
+        y_eye = K.flatten(seqs) * flip_i  # square matrix where values of y are in the columns
         y_eye_t = K.transpose(y_eye)
 
         y_mask = K.greater_equal(y_eye, y_eye_t) # square matrix where Yi >= Yj
