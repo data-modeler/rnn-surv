@@ -14,19 +14,41 @@ class DataGenerator(keras.utils.Sequence):
     '''Generates data for Keras
     based on: https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
     '''
-    def __init__(self, X, y, counts, max_timesteps, padding_token, 
+    def __init__(self, X, y, max_timesteps, padding_token, 
                  max_batch_size, min_batch_size, shuffle=True):
         'Initialization'
         assert(min_batch_size > 1), 'You must have a `min_batch_size` greater than 1'
         self.X_dat = X
         self.y_dat = y
-        self.counts = counts
+        self._make_survstats()
         self.shuffle = shuffle
         self.max_timesteps = max_timesteps
         self.padding_token = padding_token
         self.max_batch_size = max_batch_size
         self.min_batch_size = min_batch_size
         self.on_epoch_end()
+
+    def _make_survstats(self):
+        '''Constructs dataframe that has the traditional Survival Analysis
+        dependent variable with event (1 or 0) and time-to-event (or sequence
+        length)
+        '''
+        df = self.y_dat.copy().groupby('oid').max()
+        df.index = df.index.astype('float')
+        df.columns = ['event', 'tte']
+
+        e_dist = df.event.value_counts()
+        df['e_freq'] =\
+            df.event.map(e_dist) / len(df)
+
+        t_dist = df.tte.value_counts()
+        df['t_freq'] =\
+            df.tte.map(t_dist) / len(df)
+
+        df['weight'] = df.e_freq * df.t_freq
+
+        self.survstats = df
+         
 
     def __len__(self):
         'Denotes the number of batches per epoch'
@@ -37,6 +59,7 @@ class DataGenerator(keras.utils.Sequence):
             return n_batches + 1
         else:
             return n_batches
+
 
     def __getitem__(self, index):
         'Generate one batch of data'
@@ -49,19 +72,23 @@ class DataGenerator(keras.utils.Sequence):
 
         return X, y
 
+
     def on_epoch_end(self):
         'Updates indexes after each epoch'
         if self.shuffle == True:
-            self.oids = np.random.choice(self.counts.index, self.counts.shape[0], replace=False).tolist()
+            self.oids = np.random.choice(self.survstats.index,
+                                         self.survstats.shape[0],
+                                         replace=False).tolist()
         else:
-            self.oids = self.counts.index
+            self.oids = self.survstats.index
         self.remaining_oids = self.oids.copy()
+
 
     def __data_generation(self, batch_oids):
         'Generates data containing batch_size samples' # X : (n_samples, n_timesteps, n_features)
         n = len(batch_oids)
         n_features = self.X_dat.shape[1] - 1
-        batch_cts = self.counts.loc[batch_oids, :] # represents the seq lengths
+        batch_cts = self.survstats.loc[batch_oids, :] # represents the seq lengths
         X_pad = apply_padding(self.X_dat, batch_cts, self.max_timesteps, self.padding_token, n_features)
         y_pad = apply_padding(self.y_dat, batch_cts, self.max_timesteps, self.padding_token)
         y_pad = y_pad[:, :, 0]
@@ -83,19 +110,13 @@ class DataGenerator(keras.utils.Sequence):
 if __name__ == '__main__':
     # demonstrate usage by printing the shapes of the output
     X_train = pd.read_csv('../../../data/processed/rain_X_train.csv',
-                          nrows=20000, header=None)
+                          nrows=2000, header=None)
     y_train = pd.read_csv('../../../data/processed/rain_y_train.csv',
-                          nrows=20000, header=None)
+                          nrows=2000, header=None)
     X_train.rename({0: 'oid'}, axis=1, inplace=True)
     y_train.rename({0: 'oid'}, axis=1, inplace=True)
 
-    # Get counts by oid as a representation of the length of the time-series
-    cts = pd.DataFrame(
-        X_train.groupby('oid')['oid'].value_counts().droplevel(0))
-    cts.columns = ['counts']
-
     test_params = {
-        'counts': cts.sample(20), 
         'max_timesteps': 300, 
         'padding_token': -999,
         'max_batch_size': 3, 

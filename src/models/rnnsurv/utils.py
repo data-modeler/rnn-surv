@@ -20,10 +20,10 @@ def split_at_idx(a: np.ndarray, idx: int):
     return a[:idx], a[idx:]
 
 
-def apply_padding(df, counts_df, time_width, padding_token=-999, n_features=None):
+def apply_padding(df, survstats, time_width, padding_token=-999, n_features=None):
     '''Gets batch matrix and applies padding.
     :param df: The full raw data file, either X or y, train or test
-    :param counts_df: The limited dataframe with oid as the index and `counts` 
+    :param survstats: The limited dataframe with oid as the index and `tte` 
         representing the sequence length
     :param time_width: (int) the max sequence length to truncate to or add padding
     :param padding_token: the value to use to represent padding
@@ -35,9 +35,10 @@ def apply_padding(df, counts_df, time_width, padding_token=-999, n_features=None
         n_features = 2   # the number of columns needed for y_batch
     
     batch = np.empty((0, time_width, n_features))
-    for s, val in counts_df.iterrows():
+    # process observations of the same length together
+    for s, val in survstats.iterrows():
         out = np.array(df.query('oid == @s').drop('oid', axis=1))
-        out = np.reshape(out, newshape=(1, val.counts, n_features))
+        out = np.reshape(out, newshape=(1, int(val.tte), n_features))
         out = out[:, :time_width, :]  # in case it's too long for padding
         out = np.pad(
             out, 
