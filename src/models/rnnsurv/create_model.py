@@ -9,7 +9,7 @@ from tensorflow import keras
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import Dense, LSTM, Input, TimeDistributed, Dropout, Reshape, Flatten, Lambda
 
-from losses import loss1, loss2
+from .losses import loss1, loss2
 
 
 def create_model(n_features, 

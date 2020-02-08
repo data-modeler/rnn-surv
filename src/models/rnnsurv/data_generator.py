@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from tensorflow import keras
 
-from utils import apply_padding, split_at_idx
+from .utils import apply_padding, split_at_idx
 
 class DataGenerator(keras.utils.Sequence):
     '''Generates data for Keras
