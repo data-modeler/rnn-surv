@@ -82,14 +82,17 @@ class DataGenerator(keras.utils.Sequence):
 
 if __name__ == '__main__':
     # demonstrate usage by printing the shapes of the output
-    X_train = pd.read_csv('../../data/processed/rain_X_train.csv', nrows=20000)
-    y_train = pd.read_csv('../../data/processed/rain_y_train.csv', nrows=20000)
+    X_train = pd.read_csv('../../../data/processed/rain_X_train.csv',
+                          nrows=20000, header=None)
+    y_train = pd.read_csv('../../../data/processed/rain_y_train.csv',
+                          nrows=20000, header=None)
+    X_train.rename({0: 'oid'}, axis=1, inplace=True)
+    y_train.rename({0: 'oid'}, axis=1, inplace=True)
 
     # Get counts by oid as a representation of the length of the time-series
     cts = pd.DataFrame(
         X_train.groupby('oid')['oid'].value_counts().droplevel(0))
     cts.columns = ['counts']
-    cts.sample(5)
 
     test_params = {
         'counts': cts.sample(20), 
@@ -103,5 +106,5 @@ if __name__ == '__main__':
     training_generator = DataGenerator(X_train, y_train, **test_params)
 
     for i in training_generator:
-        print(i[0][0].shape, i[0][1].shape, i[0][2].shape
+        print(i[0][0].shape, i[0][1].shape, i[0][2].shape,
               i[1][0].shape, i[1][1].shape)
