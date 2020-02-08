@@ -45,7 +45,7 @@ class DataGenerator(keras.utils.Sequence):
         df['t_freq'] =\
             df.tte.map(t_dist) / len(df)
 
-        df['weight'] = df.e_freq * df.t_freq
+        df['weight'] = 1 - df.e_freq * df.t_freq
 
         self.survstats = df
          
@@ -61,14 +61,27 @@ class DataGenerator(keras.utils.Sequence):
             return n_batches
 
 
+    def _batch_split(self):
+        'Samples from the remaining observations weighted by event and tte.'
+        remain = self.survstats.copy().loc[self.remaining_oids, :]
+        if len(remain) > self.max_batch_size:
+            batch = remain.copy().sample(self.max_batch_size, replace=False,
+                                         weights='weight')
+        else:
+            batch = remain.copy()
+        remain = remain.drop(batch.index)
+        self.remaining_oids = remain.index
+        return batch
+
+        
+
     def __getitem__(self, index):
         'Generate one batch of data'
         # Generate indexes of the batch
-        batch_oids, self.remaining_oids = \
-            split_at_idx(self.remaining_oids, self.max_batch_size)
+        batch_surv = self._batch_split()
 
         # Generate data
-        X, y = self.__data_generation(batch_oids)
+        X, y = self.__data_generation(batch_surv)
 
         return X, y
 
@@ -84,11 +97,11 @@ class DataGenerator(keras.utils.Sequence):
         self.remaining_oids = self.oids.copy()
 
 
-    def __data_generation(self, batch_oids):
-        'Generates data containing batch_size samples' # X : (n_samples, n_timesteps, n_features)
-        n = len(batch_oids)
+    def __data_generation(self, batch_surv):
+        'Generates data containing batch_size samples'
+        n = len(batch_surv)
         n_features = self.X_dat.shape[1] - 1
-        batch_cts = self.survstats.loc[batch_oids, :] # represents the seq lengths
+        batch_cts = batch_surv.copy().drop(['e_freq', 't_freq', 'weight'], axis=1)
         X_pad = apply_padding(self.X_dat, batch_cts, self.max_timesteps, self.padding_token, n_features)
         y_pad = apply_padding(self.y_dat, batch_cts, self.max_timesteps, self.padding_token)
         y_pad = y_pad[:, :, 0]
@@ -119,7 +132,7 @@ if __name__ == '__main__':
     test_params = {
         'max_timesteps': 300, 
         'padding_token': -999,
-        'max_batch_size': 3, 
+        'max_batch_size': 50, 
         'min_batch_size': 2, 
         'shuffle': True
     }
