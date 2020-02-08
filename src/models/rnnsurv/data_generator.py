@@ -6,7 +6,7 @@
 '''
 import numpy as np
 import pandas as pd
-from tensorflow import import keras
+from tensorflow import keras
 
 from utils import apply_padding, split_at_idx
 
@@ -82,9 +82,8 @@ class DataGenerator(keras.utils.Sequence):
 
 if __name__ == '__main__':
     # demonstrate usage by printing the shapes of the output
-    # TODO: add file paths
-    X_train = pd.read_csv(..., nrows=20000)
-    y_train = pd.read_csv(..., nrows=20000)
+    X_train = pd.read_csv('../../data/processed/rain_X_train.csv', nrows=20000)
+    y_train = pd.read_csv('../../data/processed/rain_y_train.csv', nrows=20000)
 
     # Get counts by oid as a representation of the length of the time-series
     cts = pd.DataFrame(
