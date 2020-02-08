@@ -121,13 +121,10 @@ class DataGenerator(keras.utils.Sequence):
 
 
 if __name__ == '__main__':
+    from utils import get_data
+
     # demonstrate usage by printing the shapes of the output
-    X_train = pd.read_csv('../../../data/processed/rain_X_train.csv',
-                          nrows=2000, header=None)
-    y_train = pd.read_csv('../../../data/processed/rain_y_train.csv',
-                          nrows=2000, header=None)
-    X_train.rename({0: 'oid'}, axis=1, inplace=True)
-    y_train.rename({0: 'oid'}, axis=1, inplace=True)
+    X_train, y_train = get_data(nrows=2000)
 
     test_params = {
         'max_timesteps': 300, 

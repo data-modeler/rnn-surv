@@ -12,7 +12,6 @@ from tensorflow.keras.layers import Dense, LSTM, Input, TimeDistributed, Dropout
 from . import loss1, loss2
 
 
-
 def create_model(n_features, 
                  dense_sizes = (20, 10),
                  lstm_sizes = (30, 30),
@@ -73,3 +72,10 @@ def create_model(n_features,
     model.summary()
     
     return model
+
+if __name__ == '__main__':
+    from utils import get_data
+
+    X_train, y_train = get_data(nrows=2000)
+
+
