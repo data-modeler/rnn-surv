@@ -64,11 +64,7 @@ def create_model(n_features,
     }
 
     model = Model([x_in, loss_mask, flip_i], [r_out, y_hat])
-    model.compile(optimizer=optimizer, loss=losses, loss_weights=loss_weights,
-                  experimental_run_tf_function=False)
-    # the argument `experimental_run_tf_function=False` was added per this issue:
-    # https://github.com/tensorflow/probability/issues/519
-    # this was throwing the same error
+    model.compile(optimizer=optimizer, loss=losses, loss_weights=loss_weights) 
     model.summary()
     
     return model
