@@ -39,16 +39,16 @@ PARAMS = {
 TRAIN_GENERATOR = DataGenerator(XT, YT, **PARAMS)
 
 print('Training model...')
-MODEL.fit_generator(TRAIN_GENERATOR, epochs=9)
+MODEL.fit(TRAIN_GENERATOR, epochs=9)
 
 MYDIR = '../../models'
 
 # serialize model to JSON
 MODEL_JSON = MODEL.to_json()
-with open(os.path.join(MYDIR, "model.json"), "w") as json_file:
+with open(os.path.join(MYDIR, "model-002.json"), "w") as json_file:
     json_file.write(MODEL_JSON)
 
 # serialize weights to HDF5
-MODEL.save_weights(os.path.join(MYDIR, "model.h5"))
+MODEL.save_weights(os.path.join(MYDIR, "model-002.h5"))
 print("Saved model to disk")
 
