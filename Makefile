@@ -6,7 +6,7 @@
 
 PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 BUCKET = rnnsurv
-PROFILE = data-modeler
+PROFILE = default
 PROJECT_NAME = rnn-surv
 PYTHON_INTERPRETER = python3
 
