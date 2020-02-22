@@ -10,9 +10,14 @@ import pandas as pd
 from os.path import dirname as up
 from src.models.rnnsurv import get_data, DataGenerator, create_model
 
+MODELNAME = 'model-002'
+
 print('Getting Data...')
-DATAPATH = os.path.join(up(up(up(__file__))), 'data', 'processed')
-XT, YT = get_data(path_to_file=DATAPATH)
+BASEPATH = up(up(up(__file__)))
+DATAPATH = os.path.join(BASEPATH, 'data', 'processed')
+XT, YT = get_data(path_to_file=DATAPATH, nrows=None)
+XV, YV = get_data(path_to_file=DATAPATH, X_filename='rain_X_val.csv',
+                  y_filename='rain_y_val.csv', nrows=None)
 
 N_FEATURES = XT.shape[1] - 1 
 
@@ -38,18 +43,19 @@ PARAMS = {
 }
 
 TRAIN_GENERATOR = DataGenerator(XT, YT, **PARAMS)
+VAL_GENERATOR = DataGenerator(XV, YV, validation=True, **PARAMS)
 
 print('Training model...')
-MODEL.fit(TRAIN_GENERATOR, epochs=9)
+MODEL.fit(TRAIN_GENERATOR, validation_data=VAL_GENERATOR, epochs=9)
 
-MYDIR = '../../models'
+MODELPATH = os.path.join(BASEPATH, 'models')
 
 # serialize model to JSON
 MODEL_JSON = MODEL.to_json()
-with open(os.path.join(MYDIR, "model-002.json"), "w") as json_file:
+with open(os.path.join(MODELPATH, f"{MODELNAME}.json"), "w") as json_file:
     json_file.write(MODEL_JSON)
 
 # serialize weights to HDF5
-MODEL.save_weights(os.path.join(MYDIR, "model-002.h5"))
+MODEL.save_weights(os.path.join(MODELPATH, f"{MODELNAME}.h5"))
 print("Saved model to disk")
 

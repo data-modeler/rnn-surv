@@ -15,9 +15,12 @@ class DataGenerator(keras.utils.Sequence):
     based on: https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
     '''
     def __init__(self, X, y, max_timesteps, padding_token, 
-                 max_batch_size, min_batch_size, shuffle=True):
+                 max_batch_size, min_batch_size, shuffle=True,
+                 validation=False):
         'Initialization'
-        assert(min_batch_size > 1), 'You must have a `min_batch_size` greater than 1'
+        self.validation = validation
+        if not validation:
+            assert(min_batch_size > 1), 'You must have a `min_batch_size` greater than 1'
         self.X_dat = X
         self.y_dat = y
         self._make_survstats()
@@ -52,6 +55,8 @@ class DataGenerator(keras.utils.Sequence):
 
     def __len__(self):
         'Denotes the number of batches per epoch'
+        if self.validation:
+            return 1
         n_obs = len(self.oids)
         n_batches = int(n_obs // self.max_batch_size)
         remainder = n_obs - (n_batches * self.max_batch_size)
@@ -63,6 +68,9 @@ class DataGenerator(keras.utils.Sequence):
 
     def _batch_split(self):
         'Samples from the remaining observations weighted by event and tte.'
+        if self.validation:
+            return self.survstats
+
         remain = self.survstats.copy().loc[self.remaining_oids, :]
         if len(remain) > self.max_batch_size:
             batch = remain.copy().sample(self.max_batch_size, replace=False,
@@ -88,7 +96,7 @@ class DataGenerator(keras.utils.Sequence):
 
     def on_epoch_end(self):
         'Updates indexes after each epoch'
-        if self.shuffle == True:
+        if self.shuffle and not self.validation:
             self.oids = np.random.choice(self.survstats.index,
                                          self.survstats.shape[0],
                                          replace=False).tolist()

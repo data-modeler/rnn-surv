@@ -135,17 +135,28 @@ def make_survival_data(data):
     return out
 
 
-def split_survival_data(data, frac=0.7):
+def split_survival_data(data, test_frac=0.2, val_frac=0.3):
+
+    frac = 1 - test_frac
     train_ids = data.query("seq == 1").sample(frac=frac).oid.tolist()
     
     train_dat = data.query("oid in @train_ids")
     test_dat = data.query("oid not in @train_ids")
-              
+
+    val_ids = train_dat.query("seq == 1").sample(frac=val_frac).oid.tolist()
+    val_dat = train_dat.query("oid in @val_ids")
+    train_dat = train_dat.query("oid not in @val_ids")
+
     x_cols = ['station', 'temp', 'wetb', 'dewpt', 'vappr', 'rhum', 'msl',
               'wdsp', 'wddir', 'month', 'oid']
     y_cols = ['oid', 'rain_flag', 'seq']
 
-    return train_dat[x_cols], test_dat[x_cols], train_dat[y_cols], test_dat[y_cols]
+    out_tuple = (
+        train_dat[x_cols], test_dat[x_cols], val_dat[x_cols],
+        train_dat[y_cols], test_dat[y_cols], val_dat[y_cols]
+    )
+
+    return out_tuple
 
 
 def process_final_weather_data():
@@ -171,7 +182,7 @@ def process_final_weather_data():
     # use month of the year as a predictor
     out['month'] = pd.DatetimeIndex(out.date.to_numpy(np.datetime64)).month
 
-    X_train, X_test, y_train, y_test = split_survival_data(out)
+    X_train, X_test, X_val, y_train, y_test, y_val = split_survival_data(out)
     
     # get preprocessors
     cats = ['station', 'month']
@@ -180,7 +191,7 @@ def process_final_weather_data():
     scaler = StandardScaler().fit(X_train[nums])
     ohe = OneHotEncoder(sparse=False).fit(X_train[cats])
 
-    # transform train and test
+    # transform train, test, and val
     X_train = np.concatenate((
         X_train[['oid']],
         ohe.transform(X_train[cats]),
@@ -194,11 +205,20 @@ def process_final_weather_data():
         axis=1
     )
 
+    X_val = np.concatenate((
+        X_val[['oid']],
+        ohe.transform(X_val[cats]),
+        scaler.transform(imputer.transform(X_val[nums]))),
+        axis=1
+    )
+
     print('Saving final data files...')
     save_files('processed', 'rain_X_train.csv', X_train)
     save_files('processed', 'rain_X_test.csv', X_test)
+    save_files('processed', 'rain_X_val.csv', X_val)
     save_files('processed', 'rain_y_train.csv', y_train, header=False)
     save_files('processed', 'rain_y_test.csv', y_test, header=False)
+    save_files('processed', 'rain_y_val.csv', y_val, header=False)
     
 
 def process_aids_data(input_path, output_path):
