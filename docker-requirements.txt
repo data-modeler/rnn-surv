@@ -1,0 +1,7 @@
+# local package
+-e .
+
+# external requirements
+sklearn==0.0
+pandas==0.25.3
+tqdm==4.41.1

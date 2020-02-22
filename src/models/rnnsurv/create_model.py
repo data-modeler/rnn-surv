@@ -45,7 +45,13 @@ def create_model(n_features,
 
     layers = Sequential(name='y_hat')
     for l_size in lstm_sizes:
-        layers.add(LSTM(l_size, return_sequences=True))
+        layers.add(LSTM(l_size,
+                        activation='tanh',
+                        recurrent_activation='sigmoid',
+                        recurrent_dropout=0,
+                        unroll=False,
+                        use_bias=True,
+                        return_sequences=True))
 
     layers.add(Dropout(dropout_prob))
     layers.add(TimeDistributed(Dense(1, activation='sigmoid')))

@@ -39,6 +39,28 @@ make help
 ```
 
 ------------
+## Training
+------------
+### From Docker
+The Dockerfile included here will launch a tensorflow gpu container for training the model. Please note that nVidia drivers and a compatible GPU must be installed, otherwise it will train on CPU.
+Build the container with:
+```
+sudo docker build . -t rnnsurv
+```
+
+To train the model, run:
+```
+sudo docker run --gpus all -u 1000:1000 -v $(pwd):/mnt -it rnnsurv:latest python mnt/src/models/train_model.py
+```
+
+Or for an interactive session, run:
+```
+sudo docker run --gpus all -u 1000:1000 -v $(pwd):/mnt -it rnnsurv:latest bash
+```
+
+
+
+------------
 ## Project Organization
 ------------
 
