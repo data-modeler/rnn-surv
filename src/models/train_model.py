@@ -7,11 +7,12 @@
 import os
 import numpy as np
 import pandas as pd
-
+from os.path import dirname as up
 from src.models.rnnsurv import get_data, DataGenerator, create_model
 
 print('Getting Data...')
-XT, YT = get_data()
+DATAPATH = os.path.join(up(up(up(__file__))), 'data', 'processed')
+XT, YT = get_data(path_to_file=DATAPATH)
 
 N_FEATURES = XT.shape[1] - 1 
 
