@@ -8,7 +8,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from rnnsurv import get_data, DataGenerator, create_model
+from src.models.rnnsurv import get_data, DataGenerator, create_model
 
 print('Getting Data...')
 XT, YT = get_data()
