@@ -55,6 +55,9 @@ MODEL_JSON = MODEL.to_json()
 with open(os.path.join(MODELPATH, f"{MODELNAME}.json"), "w") as json_file:
     json_file.write(MODEL_JSON)
 
+with open(os.path.join(MODELPATH, f"{MODELNAME}_data_params.json"), "w") as json_file:
+    json_file.write(json.dumps(PARAMS))
+
 # serialize weights to HDF5
 MODEL.save_weights(os.path.join(MODELPATH, f"{MODELNAME}.h5"))
 print("Saved model to disk")
