@@ -29,6 +29,18 @@ requirements: test_environment
 data: 
 	$(PYTHON_INTERPRETER) src/data/make_dataset.py data/raw data/processed
 
+## Build Docker
+docker_build:
+	sudo docker build . -t rnnsurv
+
+## Interactive Docker session (bash)
+docker_bash:
+	sudo docker run --gpus all -u 1000:1000 -v $(PROJECT_DIR):/mnt -it rnnsurv:latest bash
+
+## Train using Docker
+docker_train:
+	sudo docker run --gpus all -u 1000:1000 -v $(PROJECT_DIR):/mnt -it rnnsurv:latest python mnt/src/models/train_model.py
+
 ## Delete all compiled Python files
 clean:
 	find . -type f -name "*.py[co]" -delete
