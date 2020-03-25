@@ -5,6 +5,7 @@
 '''
 
 import os
+import json
 import numpy as np
 import pandas as pd
 from os.path import dirname as up
@@ -15,9 +16,10 @@ MODELNAME = 'model-002'
 print('Getting Data...')
 BASEPATH = up(up(up(__file__)))
 DATAPATH = os.path.join(BASEPATH, 'data', 'processed')
-XT, YT = get_data(path_to_file=DATAPATH, nrows=None)
-XV, YV = get_data(path_to_file=DATAPATH, X_filename='rain_X_val.csv',
-                  y_filename='rain_y_val.csv', nrows=None)
+XT = get_data(path_to_file=DATAPATH, filename='rain_X_train.csv', nrows=10000)
+YT = get_data(path_to_file=DATAPATH, filename='rain_y_train.csv', nrows=10000)
+XV = get_data(path_to_file=DATAPATH, filename='rain_X_val.csv', nrows=4000)
+YV = get_data(path_to_file=DATAPATH, filename='rain_y_val.csv', nrows=4000)
 
 N_FEATURES = XT.shape[1] - 1 
 
