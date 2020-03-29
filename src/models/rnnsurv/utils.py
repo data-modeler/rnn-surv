@@ -53,16 +53,12 @@ def apply_padding(df, survstats, time_width, padding_token=-999, n_features=None
 
 
 def get_data(path_to_file='data/processed/',
-             X_filename='rain_X_train.csv',
-             y_filename='rain_y_train.csv',
+             filename='rain_X_train.csv',
              nrows=None):
-    '''Gets X and y data and makes it ready for use.'''
+    '''Gets X or y data and makes it ready for use.'''
 
-    X_train = pd.read_csv(os.path.join(path_to_file, X_filename),
+    out = pd.read_csv(os.path.join(path_to_file, filename),
                           nrows=nrows, header=None)
-    y_train = pd.read_csv(os.path.join(path_to_file, y_filename),
-                          nrows=nrows, header=None)
-    X_train.rename({0: 'oid'}, axis=1, inplace=True)
-    y_train.rename({0: 'oid'}, axis=1, inplace=True)
+    out.rename({0: 'oid'}, axis=1, inplace=True)
 
-    return X_train, y_train
+    return out

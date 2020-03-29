@@ -8,19 +8,29 @@ import numpy as np
 import pandas as pd
 from tensorflow import keras
 
-from .utils import apply_padding, split_at_idx
+from src.models.rnnsurv.utils import apply_padding, split_at_idx
 
 class DataGenerator(keras.utils.Sequence):
     '''Generates data for Keras
     based on: https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
     '''
-    def __init__(self, X, y, max_timesteps, padding_token, 
-                 max_batch_size, min_batch_size, shuffle=True,
-                 validation=False):
+    def __init__(self, X, y=None, max_timesteps=200, padding_token=-999, 
+                 max_batch_size=1024, min_batch_size=32, shuffle=True,
+                 validation=False, prediction=False):
         'Initialization'
         self.validation = validation
-        if not validation:
+        self.prediction = prediction
+        if not (validation or prediction):
             assert(min_batch_size > 1), 'You must have a `min_batch_size` greater than 1'
+
+        # y is simulated for later calculations related to X output
+        if y is None:
+            y = pd.DataFrame({
+                'oid': X['oid'].astype(int),
+                '1': np.zeros(X.shape[0], int),
+            })
+            y['2'] = y.groupby('oid').cumcount()+1
+
         self.X_dat = X
         self.y_dat = y
         self._make_survstats()
@@ -55,11 +65,13 @@ class DataGenerator(keras.utils.Sequence):
 
     def __len__(self):
         'Denotes the number of batches per epoch'
-        if self.validation:
+        if self.validation or self.prediction:
             return 1
+
         n_obs = len(self.oids)
         n_batches = int(n_obs // self.max_batch_size)
         remainder = n_obs - (n_batches * self.max_batch_size)
+
         if remainder >= self.min_batch_size:
             return n_batches + 1
         else:
@@ -68,7 +80,7 @@ class DataGenerator(keras.utils.Sequence):
 
     def _batch_split(self):
         'Samples from the remaining observations weighted by event and tte.'
-        if self.validation:
+        if self.validation or self.prediction:
             return self.survstats
 
         remain = self.survstats.copy().loc[self.remaining_oids, :]
@@ -91,7 +103,10 @@ class DataGenerator(keras.utils.Sequence):
         # Generate data
         X, y = self.__data_generation(batch_surv)
 
-        return X, y
+        if self.prediction:
+            return X
+        else:
+            return X, y
 
 
     def on_epoch_end(self):
@@ -143,7 +158,11 @@ if __name__ == '__main__':
     }
 
     training_generator = DataGenerator(X_train, y_train, **test_params)
+    prediction_generator = DataGenerator(X_train, None, prediction=True, **test_params)
 
     for i in training_generator:
         print(i[0][0].shape, i[0][1].shape, i[0][2].shape,
               i[1][0].shape, i[1][1].shape)
+
+    for i in prediction_generator:
+        print(i[0].shape, i[1].shape, i[2].shape)

@@ -41,6 +41,10 @@ docker_bash:
 docker_train:
 	sudo docker run --gpus all -u 1000:1000 -v $(PROJECT_DIR):/mnt -it rnnsurv:latest python mnt/src/models/train_model.py
 
+## Monitor GPU usage during training (in a different pane)
+monitor-gpu:
+	sudo watch nvidia-smi
+
 ## Delete all compiled Python files
 clean:
 	find . -type f -name "*.py[co]" -delete
