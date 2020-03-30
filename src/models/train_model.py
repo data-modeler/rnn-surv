@@ -11,56 +11,78 @@ import pandas as pd
 from os.path import dirname as up
 from src.models.rnnsurv import get_data, DataGenerator, create_model
 
-MODELNAME = 'model-002'
 
-print('Getting Data...')
-BASEPATH = up(up(up(__file__)))
-DATAPATH = os.path.join(BASEPATH, 'data', 'processed')
-XT = get_data(path_to_file=DATAPATH, filename='rain_X_train.csv', nrows=10000)
-YT = get_data(path_to_file=DATAPATH, filename='rain_y_train.csv', nrows=10000)
-XV = get_data(path_to_file=DATAPATH, filename='rain_X_val.csv', nrows=4000)
-YV = get_data(path_to_file=DATAPATH, filename='rain_y_val.csv', nrows=4000)
+def train_model(train_dat: tuple, val_dat: tuple, modelname: str, modelpath: str,
+                datapath: str, n_epochs: int,  max_batch_size: int=128,
+                min_batch_size: int=32, shuffle: bool=True,
+                dense_sizes: tuple=(20, 10), lstm_sizes: tuple=(30, 30),
+                dropout_prob: float=0.5, max_length: int=200,
+                pad_token: int=-999, optimizer: str='adam',
+                y_hat_weight: float=1.0, r_out_weight: float=1.0):
+    """Creates and trains an RNN SURV model."""
 
-N_FEATURES = XT.shape[1] - 1 
+    xt, yt = train_dat
+    xv, yv = val_dat
 
-MODEL_PARAMS = {
-    'dense_sizes': (20, 10),
-    'lstm_sizes': (30, 30),
-    'dropout_prob': 0.5,
-    'max_length': 200,
-    'pad_token': -999,
-    'optimizer': 'adam',
-    'loss_weights': {"y_hat": 1.0, "r_out": 1.0}
-}
+    n_features = xt.shape[1] - 1 
 
-print('Creating model...')
-MODEL = create_model(N_FEATURES, **MODEL_PARAMS)
+    model_params = {
+        'n_features': n_features,
+        'dense_sizes': dense_sizes,
+        'lstm_sizes': lstm_sizes,
+        'dropout_prob': dropout_prob,
+        'max_length': max_length,
+        'pad_token': pad_token,
+        'optimizer': optimizer,
+        'loss_weights': {"y_hat": y_hat_weight, "r_out": r_out_weight}
+    }
 
-PARAMS = {
-    'max_timesteps': MODEL_PARAMS['max_length'],
-    'padding_token': MODEL_PARAMS['pad_token'],
-    'max_batch_size': 128,
-    'min_batch_size': 32,
-    'shuffle': True,
-}
+    model = create_model(**model_params)
 
-TRAIN_GENERATOR = DataGenerator(XT, YT, **PARAMS)
-VAL_GENERATOR = DataGenerator(XV, YV, validation=True, **PARAMS)
+    data_params = {
+        'max_timesteps': max_length,
+        'padding_token': pad_token,
+        'max_batch_size': max_batch_size,
+        'min_batch_size': min_batch_size,
+        'shuffle': shuffle,
+    }
 
-print('Training model...')
-MODEL.fit(TRAIN_GENERATOR, validation_data=VAL_GENERATOR, epochs=9)
+    train_generator = DataGenerator(xt, yt, **data_params)
 
-MODELPATH = os.path.join(BASEPATH, 'models')
+    val_generator = DataGenerator(\
+        xv, yv, max_timesteps=max_length, padding_token=pad_token,
+        max_batch_size=1024, min_batch_size=1024, shuffle=True, validation=True
+    )
 
-# serialize model to JSON
-MODEL_JSON = MODEL.to_json()
-with open(os.path.join(MODELPATH, f"{MODELNAME}.json"), "w") as json_file:
-    json_file.write(MODEL_JSON)
+    model.fit(train_generator, validation_data=val_generator, epochs=n_epochs)
 
-with open(os.path.join(MODELPATH, f"{MODELNAME}_data_params.json"), "w") as json_file:
-    json_file.write(json.dumps(PARAMS))
+    # serialize model to JSON
+    model_json = model.to_json()
+    with open(os.path.join(modelpath, f"{modelname}.json"), "w") as json_file:
+        json_file.write(model_json)
 
-# serialize weights to HDF5
-MODEL.save_weights(os.path.join(MODELPATH, f"{MODELNAME}.h5"))
-print("Saved model to disk")
+    with open(os.path.join(modelpath, f"{modelname}_data_params.json"), "w")\
+        as json_file:
+        json_file.write(json.dumps(data_params))
 
+    # serialize weights to HDF5
+    model.save_weights(os.path.join(modelpath, f"{modelname}.h5"))
+
+
+if __name__ == '__main__':
+
+    MODELNAME = 'model-002'
+
+    BASEPATH = up(up(up(__file__)))
+    DATAPATH = os.path.join(BASEPATH, 'data', 'processed')
+    MODELPATH = os.path.join(BASEPATH, 'models')
+
+    print('Getting Data...')
+    XT = get_data(path_to_file=DATAPATH, filename='rain_X_train.csv', nrows=20000)
+    YT = get_data(path_to_file=DATAPATH, filename='rain_y_train.csv', nrows=20000)
+    XV = get_data(path_to_file=DATAPATH, filename='rain_X_val.csv', nrows=100000)
+    YV = get_data(path_to_file=DATAPATH, filename='rain_y_val.csv', nrows=100000)
+
+    print('Training Model...')
+    train_model((XT, YT), (XV, YV), MODELNAME, MODELPATH,
+                DATAPATH, n_epochs=9)
