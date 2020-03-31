@@ -17,7 +17,7 @@ def predict_rnnsurv(modelname, modelpath, datapath, outpath=None):
     """
 
     if outpath is None:
-        outpath = datapath
+        outpath = modelpath
 
     print('Getting Data...')
     xt = get_data(path_to_file=datapath, filename='rain_X_test.csv', nrows=1000)
