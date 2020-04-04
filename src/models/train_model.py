@@ -1,7 +1,7 @@
 '''
-    TODO:
-    4. calculate C-Index from final predictions
-    5. set up hyperparam tuning
+    Train Model
+    -----------
+    Creates and trains an RNN-SURV model based upon inputted data and hyperparameters.
 '''
 
 import os
