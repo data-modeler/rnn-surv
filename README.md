@@ -1,5 +1,4 @@
 # rnn-surv
-==============================
 
 For cases where one wishes to predict the amount of time until an event occurs, but the some of the observations have yet to see the event occur (that is, it is right-censored), survival analysis is family of methods used to perform the analysis and begin making predictions. Most survival models only regard observations at a particular point in time, or perhaps averaged over time, however, sometimes there is a need to develop a model that regards the time-series of dependent variables.
 
@@ -7,7 +6,6 @@ This repository represents an implementation of a survival analysis via recurren
 
 ------------
 ## Setup
-------------
 ### AWS
 If you haven't already, set up [AWS CLI credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) by editing the file ~/.aws/credentials (Linux & Mac) or %USERPROFILE%\.aws\credentials (Windows)
 
@@ -42,7 +40,6 @@ make help
 
 ------------
 ## Training
-------------
 ### From Docker
 The Dockerfile included here will launch a tensorflow gpu container for training the model. Please note that nVidia drivers and a compatible GPU must be installed, otherwise it will train on CPU.
 Build the container with:
@@ -64,7 +61,6 @@ sudo docker run --gpus all -u 1000:1000 -v $(pwd):/mnt -it rnnsurv:latest bash
 
 ------------
 ## Project Organization
-------------
 
     ├── LICENSE
     ├── Makefile           <- Makefile with commands like `make data` or `make train`
