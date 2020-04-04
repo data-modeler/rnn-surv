@@ -2,12 +2,12 @@ suppressMessages(library(randomForestSRC)) # survival forest
 suppressMessages(library(dplyr))
 suppressMessages(library(progress))
 
-Xtest <- read.csv('../../data/interim/aids_x_test.csv')
-ytest <- read.csv('../../data/interim/aids_y_test.csv')
+Xtest <- read.csv('../data/interim/aids_x_test.csv')
+ytest <- read.csv('../data/interim/aids_y_test.csv')
 
 testing <- cbind(Xtest, ytest)
 
-model <- readRDS("../../models/01_best_rfsurv.rds")
+model <- readRDS("../models/01_best_rfsurv.rds")
 
 pred <- predict(model, testing); pred
 
