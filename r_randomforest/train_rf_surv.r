@@ -2,8 +2,8 @@ library(randomForestSRC) # survival forest
 library(caret) # useful machine learning functions
 library(rBayesianOptimization) # for hyperparam tuning
 
-Xtrain <- read.csv('../../data/interim/aids_x_train.csv')
-ytrain <- read.csv('../../data/interim/aids_y_train.csv')
+Xtrain <- read.csv('../data/interim/aids_x_train.csv')
+ytrain <- read.csv('../data/interim/aids_y_train.csv')
 
 training <- cbind(Xtrain, ytrain)
 
@@ -60,5 +60,5 @@ best_model <- rfsrc(formula=surv_f, data=training,
 		    nodedepth=NULL,
 		    importance = 'permute')
 
-saveRDS(best_model, "../../models/01_best_rfsurv.rds")
+saveRDS(best_model, "../models/01_best_rfsurv.rds")
 
