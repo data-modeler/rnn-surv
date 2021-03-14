@@ -1,6 +1,6 @@
 # rnn-surv
 
-For cases where one wishes to predict the amount of time until an event occurs, but the some of the observations have yet to see the event occur (that is, it is right-censored), survival analysis is family of methods used to perform the analysis and begin making predictions. Most survival models only regard observations at a particular point in time, or perhaps averaged over time, however, sometimes there is a need to develop a model that regards the time-series of dependent variables.
+For cases where one wishes to predict the amount of time until an event occurs, but the some of the observations have yet to see the event occur (that is, it is right-censored), survival analysis is family of methods used to perform the analysis and begin making predictions. Most survival models only regard observations at a particular point in time, or perhaps averaged over time, however, sometimes there is a need to develop a model that regards the time-series of independent variables.
 
 This repository represents an implementation of a survival analysis via recurrent neural network, and is based upon the [RNN-SURV model described here](http://medianetlab.ee.ucla.edu/papers/RNN_SURV.pdf)
 
